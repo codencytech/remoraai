@@ -136,7 +136,7 @@ const ChatInterface = () => {
                 </div>
               </div>
               <div className="logo-text">
-                <h1>ContextGuard AI</h1>
+                <h1>RemoraAI</h1>
                 <p className="tagline">Memory-Powered Assistant</p>
               </div>
             </div>
@@ -265,7 +265,7 @@ const ChatInterface = () => {
                     <polyline points="17 6 23 6 23 12"/>
                   </svg>
                 </div>
-                <h2>Welcome to ContextGuard AI</h2>
+                <h2>Welcome to RemoraAI</h2>
                 <p>I remember everything you save, so you never have to repeat yourself.</p>
                 <div className="welcome-tips">
                   <div className="tip-card">
@@ -322,7 +322,7 @@ const ChatInterface = () => {
                         <span></span>
                         <span></span>
                       </div>
-                      <span className="thinking-text">ContextGuard is thinking</span>
+                      <span className="thinking-text">Remora is thinking</span>
                     </div>
                   </div>
                 </div>

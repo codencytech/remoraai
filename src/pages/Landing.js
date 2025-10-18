@@ -85,7 +85,7 @@ const Landing = () => {
               🧠
             </motion.div>
             <div className="brand-text">
-              <h1 className="brand-title">ContextGuard <span className="accent">AI</span></h1>
+              <h1 className="brand-title">Remora <span className="accent">AI</span></h1>
               <p className="brand-tag">Your private, context-saving AI sidekick (that actually remembers things).</p>
             </div>
           </div>
@@ -110,7 +110,7 @@ const Landing = () => {
             </motion.h2>
 
             <motion.p className="hero-lead" variants={fadeUp}>
-              Build projects, save important context, and chat like a human — ContextGuard AI keeps the thread, so you can keep shipping. Problem solver by design, slightly cheeky by personality.
+              Build projects, save important context, and chat like a human — RemoraAI keeps the thread, so you can keep shipping. Problem solver by design, slightly cheeky by personality.
             </motion.p>
 
             <motion.div className="hero-actions" variants={fadeUp}>
@@ -154,7 +154,7 @@ const Landing = () => {
             <motion.div className="step-card" variants={fadeUp}>
               <div className="step-number">3</div>
               <h4>Talk naturally</h4>
-              <p>Ask questions, request changes, or refer to saved items — ContextGuard replies with context-aware answers and code snippets.</p>
+              <p>Ask questions, request changes, or refer to saved items — Remora replies with context-aware answers and code snippets.</p>
             </motion.div>
 
             <motion.div className="step-card" variants={fadeUp}>
@@ -167,7 +167,7 @@ const Landing = () => {
 
         {/* FEATURES / USE CASES */}
         <section className="features-section">
-          <motion.h3 className="section-title" variants={fadeUp}>What makes ContextGuard stand out</motion.h3>
+          <motion.h3 className="section-title" variants={fadeUp}>What makes Remora stand out</motion.h3>
 
           <motion.div className="features-grid">
             <motion.article className="feature" variants={fadeUp}>
@@ -236,7 +236,7 @@ const Landing = () => {
         <footer className="site-footer" role="contentinfo">
           <div className="footer-main">
             <div className="footer-left">
-              <div className="small-brand">ContextGuard AI</div>
+              <div className="small-brand">RemoraAI</div>
               <div className="footer-email">Contact: <a href="mailto:codencyindia@gmail.com">codencyindia@gmail.com</a></div>
             </div>
 
@@ -246,7 +246,7 @@ const Landing = () => {
             </div>
           </div>
 
-          <div className="footer-note">© {new Date().getFullYear()} ContextGuard AI — Built for Hackathon. All rights reserved.</div>
+          <div className="footer-note">© {new Date().getFullYear()} RemoraAI — Built for Hackathon. All rights reserved.</div>
         </footer>
       </motion.div>
     </div>
