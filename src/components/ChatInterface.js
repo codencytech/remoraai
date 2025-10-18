@@ -6,7 +6,6 @@ const ChatInterface = () => {
   const [messages, setMessages] = useState([]);
   const [inputMessage, setInputMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [apiStatus, setApiStatus] = useState('checking');
   const [currentTypingMessage, setCurrentTypingMessage] = useState(null);
   const [savedContexts, setSavedContexts] = useState([]);
   const [showMemoryPanel, setShowMemoryPanel] = useState(false);
@@ -16,7 +15,6 @@ const ChatInterface = () => {
   useEffect(() => {
     (async () => {
       const res = await testAPI();
-      setApiStatus(res.success ? 'working' : 'failed');
       refreshSavedContexts();
     })();
   }, []);

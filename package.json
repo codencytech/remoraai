@@ -2,7 +2,7 @@
   "name": "remoraai",
   "version": "0.1.0",
   "private": true,
-  "homepage": "https://codencytech.github.io/remoraai",
+  "homepage": "https://codencytech.github.io/RemoraAI",
   "dependencies": {
     "@google/genai": "^1.24.0",
     "@testing-library/dom": "^10.4.1",
