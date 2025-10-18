@@ -14,7 +14,7 @@ const ChatInterface = () => {
 
   useEffect(() => {
     (async () => {
-      const res = await testAPI();
+      await testAPI();
       refreshSavedContexts();
     })();
   }, []);
