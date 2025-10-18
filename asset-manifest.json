@@ -1,15 +1,15 @@
 {
   "files": {
     "main.css": "/RemoraAI/static/css/main.a9ee98ff.css",
-    "main.js": "/RemoraAI/static/js/main.7d1bf97c.js",
+    "main.js": "/RemoraAI/static/js/main.680f9e58.js",
     "static/js/453.23d65da1.chunk.js": "/RemoraAI/static/js/453.23d65da1.chunk.js",
     "index.html": "/RemoraAI/index.html",
     "main.a9ee98ff.css.map": "/RemoraAI/static/css/main.a9ee98ff.css.map",
-    "main.7d1bf97c.js.map": "/RemoraAI/static/js/main.7d1bf97c.js.map",
+    "main.680f9e58.js.map": "/RemoraAI/static/js/main.680f9e58.js.map",
     "453.23d65da1.chunk.js.map": "/RemoraAI/static/js/453.23d65da1.chunk.js.map"
   },
   "entrypoints": [
     "static/css/main.a9ee98ff.css",
-    "static/js/main.7d1bf97c.js"
+    "static/js/main.680f9e58.js"
   ]
 }
