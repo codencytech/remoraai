@@ -1,0 +1,15 @@
+{
+  "files": {
+    "main.css": "/remoraai/static/css/main.a9ee98ff.css",
+    "main.js": "/remoraai/static/js/main.53b34244.js",
+    "static/js/453.23d65da1.chunk.js": "/remoraai/static/js/453.23d65da1.chunk.js",
+    "index.html": "/remoraai/index.html",
+    "main.a9ee98ff.css.map": "/remoraai/static/css/main.a9ee98ff.css.map",
+    "main.53b34244.js.map": "/remoraai/static/js/main.53b34244.js.map",
+    "453.23d65da1.chunk.js.map": "/remoraai/static/js/453.23d65da1.chunk.js.map"
+  },
+  "entrypoints": [
+    "static/css/main.a9ee98ff.css",
+    "static/js/main.53b34244.js"
+  ]
+}
