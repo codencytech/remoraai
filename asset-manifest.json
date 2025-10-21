@@ -1,15 +1,15 @@
 {
   "files": {
     "main.css": "/remoraai/static/css/main.a9ee98ff.css",
-    "main.js": "/remoraai/static/js/main.3a9c4d03.js",
+    "main.js": "/remoraai/static/js/main.de285786.js",
     "static/js/453.23d65da1.chunk.js": "/remoraai/static/js/453.23d65da1.chunk.js",
     "index.html": "/remoraai/index.html",
     "main.a9ee98ff.css.map": "/remoraai/static/css/main.a9ee98ff.css.map",
-    "main.3a9c4d03.js.map": "/remoraai/static/js/main.3a9c4d03.js.map",
+    "main.de285786.js.map": "/remoraai/static/js/main.de285786.js.map",
     "453.23d65da1.chunk.js.map": "/remoraai/static/js/453.23d65da1.chunk.js.map"
   },
   "entrypoints": [
     "static/css/main.a9ee98ff.css",
-    "static/js/main.3a9c4d03.js"
+    "static/js/main.de285786.js"
   ]
 }
