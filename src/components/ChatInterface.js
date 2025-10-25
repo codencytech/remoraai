@@ -10,6 +10,18 @@ const ChatInterface = () => {
   const [savedContexts, setSavedContexts] = useState([]);
   const [showMemoryPanel, setShowMemoryPanel] = useState(false);
 
+  // For regenerate + tracking last AI answer / user prompt
+  const [lastAIMessageId, setLastAIMessageId] = useState(null);
+  const [lastUserPrompt, setLastUserPrompt] = useState(null);
+  const [showRegenerate, setShowRegenerate] = useState(false);
+
+  // generation control (for stop)
+  const generationRef = useRef({
+    cancelled: false,
+    id: null
+  });
+
+  // reference to messages container end for scrolling
   const messagesEndRef = useRef(null);
 
   useEffect(() => {
@@ -30,8 +42,14 @@ const ChatInterface = () => {
   };
 
   const refreshSavedContexts = () => {
-    const contexts = getSavedContexts();
-    setSavedContexts(contexts);
+    // original getSavedContexts might be sync — if it's async, this will still work if it returns a Promise
+    const maybe = getSavedContexts();
+    if (maybe && typeof maybe.then === 'function') {
+      maybe.then(ctxs => setSavedContexts(ctxs || []))
+           .catch(() => setSavedContexts([]));
+    } else {
+      setSavedContexts(maybe || []);
+    }
   };
 
   const pushMessage = (text, sender = 'ai') => {
@@ -45,10 +63,28 @@ const ChatInterface = () => {
     return message;
   };
 
+  /**
+   * typeMessage: typewriter effect with cancellation support
+   * - If generationRef.current.cancelled is set while typing, it stops and writes "(stopped)" message.
+   */
   const typeMessage = async (fullText, messageId) => {
     let displayedText = '';
-    
+
+    // If cancelled already, set a stopped message and return
+    if (generationRef.current.cancelled) {
+      setMessages(prev => prev.map(msg => msg.id === messageId ? { ...msg, text: '(generation stopped)' } : msg));
+      setCurrentTypingMessage(null);
+      return;
+    }
+
     for (let i = 0; i < fullText.length; i++) {
+      // check cancellation between characters
+      if (generationRef.current.cancelled) {
+        setMessages(prev => prev.map(msg => msg.id === messageId ? { ...msg, text: displayedText + ' …(stopped)' } : msg));
+        setCurrentTypingMessage(null);
+        return;
+      }
+
       displayedText += fullText[i];
       setCurrentTypingMessage({
         id: messageId,
@@ -56,18 +92,93 @@ const ChatInterface = () => {
         sender: 'ai',
         timestamp: new Date().toLocaleTimeString()
       });
-      
-      const delay = 10 + Math.random() * 40;
+
+      const delay = 8 + Math.random() * 35; // small, faster type
       await new Promise(resolve => setTimeout(resolve, delay));
     }
-    
+
+    // replace the placeholder with the full text
     setMessages(prev => prev.map(msg => 
       msg.id === messageId 
         ? { ...msg, text: fullText }
         : msg
     ));
-    
+
     setCurrentTypingMessage(null);
+  };
+
+  /**
+   * generateThreeWallResponse:
+   * - Wall 1: produce initial content
+   * - Wall 2: verify & correct duplication/format (basic wrapper prompt)
+   * - Wall 3: format for user with headings/numbering/clean output
+   *
+   * Note: This relies on sendMessageToAI being a synchronous/awaitable call that returns text.
+   * We check generationRef.current.cancelled between steps. If cancelled, stop and cleanup.
+   */
+  const generateThreeWallResponse = async (userPrompt) => {
+    // Setup cancellation token for this generation
+    const genId = `gen_${Date.now()}_${Math.random().toString(36).slice(2,6)}`;
+    generationRef.current = { cancelled: false, id: genId };
+
+    setIsLoading(true);
+    setShowRegenerate(false);
+
+    // Push placeholder AI message and keep its id for typing
+    const placeholder = pushMessage('', 'ai');
+
+    try {
+      // Wall 1: generate
+      const step1Prompt = userPrompt;
+      const resp1 = await sendMessageToAI(step1Prompt);
+      if (generationRef.current.cancelled) {
+        // If cancelled mid-way, mark placeholder accordingly
+        setMessages(prev => prev.map(m => m.id === placeholder.id ? { ...m, text: '(generation stopped)' } : m));
+        setIsLoading(false);
+        setCurrentTypingMessage(null);
+        return;
+      }
+
+      // Wall 2: verify & correct duplicates / stray bullets / leading asterisks
+      // We craft a verification prompt: ask AI to remove stray characters and validate the content.
+      const step2Prompt = `Please check the following AI response for accuracy, remove any leading stray characters (like "*" or "-" if used incorrectly), remove duplicates, shorten redundancies and correct language issues. Then produce a corrected version ONLY:\n\n"${resp1}"\n\nIf nothing to correct, just repeat the corrected content.`;
+      const resp2 = await sendMessageToAI(step2Prompt);
+      if (generationRef.current.cancelled) {
+        setMessages(prev => prev.map(m => m.id === placeholder.id ? { ...m, text: '(generation stopped)' } : m));
+        setIsLoading(false);
+        setCurrentTypingMessage(null);
+        return;
+      }
+
+      // Wall 3: final formatting for user — headings, numbering, bold, code blocks where needed
+      const step3Prompt = `Format the following text for the user. Add headings, numbered steps or bullets when helpful, bold important terms, and make it look clean and professional. Produce only the final formatted content:\n\n"${resp2}"`;
+      const resp3 = await sendMessageToAI(step3Prompt);
+      if (generationRef.current.cancelled) {
+        setMessages(prev => prev.map(m => m.id === placeholder.id ? { ...m, text: '(generation stopped)' } : m));
+        setIsLoading(false);
+        setCurrentTypingMessage(null);
+        return;
+      }
+
+      // All walls done — type the final result into placeholder
+      await typeMessage(resp3, placeholder.id);
+
+      // Save last AI message id & user prompt for regen
+      setLastAIMessageId(placeholder.id);
+      setLastUserPrompt(userPrompt);
+      setShowRegenerate(true);
+
+      // After full message produced, refresh memories
+      refreshSavedContexts();
+    } catch (error) {
+      // Replace placeholder with an error
+      setMessages(prev => prev.map(m => m.id === placeholder.id ? { ...m, text: 'I encountered an error while generating the response. Please try again.' } : m));
+      setCurrentTypingMessage(null);
+    } finally {
+      setIsLoading(false);
+      generationRef.current.cancelled = false;
+      generationRef.current.id = null;
+    }
   };
 
   const handleSendMessage = async () => {
@@ -76,22 +187,10 @@ const ChatInterface = () => {
     const userMessage = inputMessage.trim();
     pushMessage(userMessage, 'user');
     setInputMessage('');
-    setIsLoading(true);
+    setLastUserPrompt(userMessage);
 
-    try {
-      const aiResponse = await sendMessageToAI(userMessage);
-      
-      refreshSavedContexts();
-      
-      const placeholderMessage = pushMessage('', 'ai');
-      setIsLoading(false);
-      await typeMessage(aiResponse, placeholderMessage.id);
-      
-    } catch (error) {
-      setIsLoading(false);
-      setCurrentTypingMessage(null);
-      pushMessage(`I encountered an error. Please try again.`, 'ai');
-    }
+    // start the 3-wall generation
+    await generateThreeWallResponse(userMessage);
   };
 
   const handleKeyPress = (e) => {
@@ -115,6 +214,32 @@ const ChatInterface = () => {
       refreshSavedContexts();
       pushMessage('All memories cleared', 'ai');
     }
+  };
+
+  // Stop current generation (safe)
+  const handleStopGeneration = () => {
+    if (isLoading || currentTypingMessage) {
+      generationRef.current.cancelled = true;
+      setIsLoading(false);
+      setCurrentTypingMessage(null);
+      // optionally push a small system message indicating stop
+      pushMessage('(Generation stopped by user)', 'ai');
+      setShowRegenerate(lastUserPrompt != null); // allow regenerate even after stop
+    }
+  };
+
+  // Regenerate last response (re-run pipeline for lastUserPrompt)
+  const handleRegenerate = async () => {
+    if (!lastUserPrompt) return;
+    // small system message
+    pushMessage('(Regenerating response...)', 'ai');
+    // run generation again
+    await generateThreeWallResponse(lastUserPrompt);
+  };
+
+  // Toggle memory panel: ensure it fully hides on desktop unless visible
+  const toggleMemoryPanel = () => {
+    setShowMemoryPanel(prev => !prev);
   };
 
   return (
@@ -169,6 +294,7 @@ const ChatInterface = () => {
             <button 
               className="close-sidebar"
               onClick={() => setShowMemoryPanel(false)}
+              aria-label="Close memory panel"
             >
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
                 <line x1="18" y1="6" x2="6" y2="18"/>
@@ -219,6 +345,7 @@ const ChatInterface = () => {
                     <button 
                       onClick={() => handleDeleteContext(ctx.id)}
                       className="delete-memory-btn"
+                      aria-label={`Delete memory ${ctx.name}`}
                     >
                       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
                         <line x1="18" y1="6" x2="6" y2="18"/>
@@ -241,8 +368,10 @@ const ChatInterface = () => {
         <section className="chat-container">
           <div className="chat-controls">
             <button 
-              onClick={() => setShowMemoryPanel(!showMemoryPanel)}
+              onClick={toggleMemoryPanel}
               className={`memory-toggle-btn ${showMemoryPanel ? 'active' : ''}`}
+              aria-pressed={showMemoryPanel}
+              aria-label="Toggle memory panel"
             >
               <span className="btn-icon">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
@@ -311,7 +440,7 @@ const ChatInterface = () => {
                 </div>
               )}
 
-              {isLoading && (
+              {isLoading && !currentTypingMessage && (
                 <div className="message-bubble ai loading">
                   <div className="bubble-content">
                     <div className="thinking-animation">
@@ -340,34 +469,65 @@ const ChatInterface = () => {
                 placeholder="Ask anything or use 'save/remember' to store information..."
                 className="message-input"
                 disabled={isLoading || currentTypingMessage}
+                aria-label="Chat input"
               />
-              <button 
-                onClick={handleSendMessage} 
-                className="send-button" 
-                disabled={isLoading || currentTypingMessage || !inputMessage.trim()}
-              >
-                {isLoading ? (
-                  <div className="send-loading">
-                    <span></span>
-                    <span></span>
-                    <span></span>
-                  </div>
-                ) : (
-                  <span className="send-icon">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                      <line x1="22" y1="2" x2="11" y2="13"/>
-                      <polygon points="22 2 15 22 11 13 2 9 22 2"/>
-                    </svg>
-                  </span>
+
+              <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                {/* Stop button: visible while generating or typing */}
+                {(isLoading || currentTypingMessage) && (
+                  <button
+                    onClick={handleStopGeneration}
+                    className="stop-button"
+                    title="Stop response"
+                    aria-label="Stop response"
+                  >
+                    ⏹
+                  </button>
                 )}
-                <div className="send-glow"></div>
-              </button>
+
+                <button 
+                  onClick={handleSendMessage} 
+                  className="send-button" 
+                  disabled={isLoading || currentTypingMessage || !inputMessage.trim()}
+                  aria-label="Send message"
+                >
+                  {isLoading ? (
+                    <div className="send-loading" aria-hidden="true">
+                      <span></span>
+                      <span></span>
+                      <span></span>
+                    </div>
+                  ) : (
+                    <span className="send-icon" aria-hidden="true">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <line x1="22" y1="2" x2="11" y2="13"/>
+                        <polygon points="22 2 15 22 11 13 2 9 22 2"/>
+                      </svg>
+                    </span>
+                  )}
+                  <div className="send-glow"></div>
+                </button>
+              </div>
             </div>
+
             <div className="input-hint">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
                 <path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z"/>
               </svg>
               Try: "save I take medicine at 9am" or ask about saved items
+            </div>
+
+            {/* Regenerate button (shown below input area, not attached to user bubble) */}
+            <div style={{ display: 'flex', justifyContent: 'center', marginTop: 12 }}>
+              {showRegenerate && (
+                <button 
+                  onClick={handleRegenerate}
+                  className="regenerate-btn"
+                  title="Regenerate last AI response"
+                >
+                  ⟲ Regenerate
+                </button>
+              )}
             </div>
           </div>
         </section>
