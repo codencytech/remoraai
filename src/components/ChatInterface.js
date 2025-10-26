@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { sendMessageToAI, testAPI, getSavedContexts, deleteContext } from '../services/aiService';
 import './ChatInterface.css';
+import LogoImage from '../assets/logo.png';
+
 
 const ChatInterface = () => {
   const [messages, setMessages] = useState([]);
@@ -214,10 +216,11 @@ const ChatInterface = () => {
             {/* ✅ Custom Logo Section */}
             <div className="logo-section">
               <img
-                src="./logo.png"
+                src={LogoImage}
                 alt="Logo"
                 className="custom-logo"
               />
+
               <div className="logo-text">
                 <h1>RemoraAI</h1>
                 <p className="tagline">Memory-Powered Assistant</p>
