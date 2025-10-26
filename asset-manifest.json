@@ -1,15 +1,16 @@
 {
   "files": {
-    "main.css": "/remoraai/static/css/main.3fac9325.css",
-    "main.js": "/remoraai/static/js/main.2cfc3ff0.js",
+    "main.css": "/remoraai/static/css/main.6ec134ab.css",
+    "main.js": "/remoraai/static/js/main.09d316cf.js",
     "static/js/453.23d65da1.chunk.js": "/remoraai/static/js/453.23d65da1.chunk.js",
+    "static/media/logo.png": "/remoraai/static/media/logo.6d491bb797969872b948.png",
     "index.html": "/remoraai/index.html",
-    "main.3fac9325.css.map": "/remoraai/static/css/main.3fac9325.css.map",
-    "main.2cfc3ff0.js.map": "/remoraai/static/js/main.2cfc3ff0.js.map",
+    "main.6ec134ab.css.map": "/remoraai/static/css/main.6ec134ab.css.map",
+    "main.09d316cf.js.map": "/remoraai/static/js/main.09d316cf.js.map",
     "453.23d65da1.chunk.js.map": "/remoraai/static/js/453.23d65da1.chunk.js.map"
   },
   "entrypoints": [
-    "static/css/main.3fac9325.css",
-    "static/js/main.2cfc3ff0.js"
+    "static/css/main.6ec134ab.css",
+    "static/js/main.09d316cf.js"
   ]
 }
