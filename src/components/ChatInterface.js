@@ -318,15 +318,6 @@ const ChatInterface = () => {
                     </span>
                     <p>Use <strong>"save"</strong> or <strong>"remember"</strong> to store information</p>
                   </div>
-                  <div className="tip-card">
-                    <span className="tip-icon">
-                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                        <circle cx="11" cy="11" r="8" />
-                        <line x1="21" y1="21" x2="16.65" y2="16.65" />
-                      </svg>
-                    </span>
-                    <p>Mention saved items in your questions for context-aware answers</p>
-                  </div>
                 </div>
               </div>
             )}
