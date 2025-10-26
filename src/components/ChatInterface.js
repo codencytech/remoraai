@@ -12,14 +12,9 @@ const ChatInterface = () => {
   const [savedContexts, setSavedContexts] = useState([]);
   const [showMemoryPanel, setShowMemoryPanel] = useState(false);
 
-  const [lastAIMessageId, setLastAIMessageId] = useState(null);
-  const [lastUserPrompt, setLastUserPrompt] = useState(null);
-  const [showRegenerate, setShowRegenerate] = useState(false);
-
-  const generationRef = useRef({
-    cancelled: false,
-    id: null
-  });
+  // Refs for stopping generation
+  const abortControllerRef = useRef(null);
+  const isTypingCancelledRef = useRef(false);
 
   const messagesEndRef = useRef(null);
 
@@ -41,13 +36,8 @@ const ChatInterface = () => {
   };
 
   const refreshSavedContexts = () => {
-    const maybe = getSavedContexts();
-    if (maybe && typeof maybe.then === 'function') {
-      maybe.then(ctxs => setSavedContexts(ctxs || []))
-        .catch(() => setSavedContexts([]));
-    } else {
-      setSavedContexts(maybe || []);
-    }
+    const contexts = getSavedContexts();
+    setSavedContexts(contexts);
   };
 
   const pushMessage = (text, sender = 'ai') => {
@@ -63,18 +53,12 @@ const ChatInterface = () => {
 
   const typeMessage = async (fullText, messageId) => {
     let displayedText = '';
-
-    if (generationRef.current.cancelled) {
-      setMessages(prev => prev.map(msg => msg.id === messageId ? { ...msg, text: '(generation stopped)' } : msg));
-      setCurrentTypingMessage(null);
-      return;
-    }
+    isTypingCancelledRef.current = false;
 
     for (let i = 0; i < fullText.length; i++) {
-      if (generationRef.current.cancelled) {
-        setMessages(prev => prev.map(msg => msg.id === messageId ? { ...msg, text: displayedText + ' …(stopped)' } : msg));
-        setCurrentTypingMessage(null);
-        return;
+      // Check if typing was cancelled
+      if (isTypingCancelledRef.current) {
+        break;
       }
 
       displayedText += fullText[i];
@@ -85,71 +69,38 @@ const ChatInterface = () => {
         timestamp: new Date().toLocaleTimeString()
       });
 
-      const delay = 8 + Math.random() * 35;
+      const delay = 10 + Math.random() * 40;
       await new Promise(resolve => setTimeout(resolve, delay));
     }
 
-    setMessages(prev => prev.map(msg =>
-      msg.id === messageId
-        ? { ...msg, text: fullText }
-        : msg
-    ));
+    // Only update the final message if not cancelled
+    if (!isTypingCancelledRef.current) {
+      setMessages(prev => prev.map(msg =>
+        msg.id === messageId
+          ? { ...msg, text: fullText }
+          : msg
+      ));
+    }
 
     setCurrentTypingMessage(null);
+    isTypingCancelledRef.current = false;
   };
 
-  const generateThreeWallResponse = async (userPrompt) => {
-    const genId = `gen_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
-    generationRef.current = { cancelled: false, id: genId };
+  const handleStopGeneration = () => {
+    // Cancel typing animation
+    isTypingCancelledRef.current = true;
 
-    setIsLoading(true);
-    setShowRegenerate(false);
-
-    const placeholder = pushMessage('', 'ai');
-
-    try {
-      const step1Prompt = userPrompt;
-      const resp1 = await sendMessageToAI(step1Prompt);
-      if (generationRef.current.cancelled) {
-        setMessages(prev => prev.map(m => m.id === placeholder.id ? { ...m, text: '(generation stopped)' } : m));
-        setIsLoading(false);
-        setCurrentTypingMessage(null);
-        return;
-      }
-
-      const step2Prompt = `Please check the following AI response for accuracy, remove any leading stray characters (like "*" or "-" if used incorrectly), remove duplicates, shorten redundancies and correct language issues. Then produce a corrected version ONLY:\n\n"${resp1}"\n\nIf nothing to correct, just repeat the corrected content.`;
-      const resp2 = await sendMessageToAI(step2Prompt);
-      if (generationRef.current.cancelled) {
-        setMessages(prev => prev.map(m => m.id === placeholder.id ? { ...m, text: '(generation stopped)' } : m));
-        setIsLoading(false);
-        setCurrentTypingMessage(null);
-        return;
-      }
-
-      const step3Prompt = `Format the following text for the user. Add headings, numbered steps or bullets when helpful, bold important terms, and make it look clean and professional. Produce only the final formatted content:\n\n"${resp2}"`;
-      const resp3 = await sendMessageToAI(step3Prompt);
-      if (generationRef.current.cancelled) {
-        setMessages(prev => prev.map(m => m.id === placeholder.id ? { ...m, text: '(generation stopped)' } : m));
-        setIsLoading(false);
-        setCurrentTypingMessage(null);
-        return;
-      }
-
-      await typeMessage(resp3, placeholder.id);
-
-      setLastAIMessageId(placeholder.id);
-      setLastUserPrompt(userPrompt);
-      setShowRegenerate(true);
-
-      refreshSavedContexts();
-    } catch (error) {
-      setMessages(prev => prev.map(m => m.id === placeholder.id ? { ...m, text: 'I encountered an error while generating the response. Please try again.' } : m));
-      setCurrentTypingMessage(null);
-    } finally {
-      setIsLoading(false);
-      generationRef.current.cancelled = false;
-      generationRef.current.id = null;
+    // Cancel API request if it exists
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+      abortControllerRef.current = null;
     }
+
+    setIsLoading(false);
+    setCurrentTypingMessage(null);
+
+    // Remove any incomplete AI message
+    setMessages(prev => prev.filter(msg => !(msg.sender === 'ai' && msg.text === '')));
   };
 
   const handleSendMessage = async () => {
@@ -158,9 +109,37 @@ const ChatInterface = () => {
     const userMessage = inputMessage.trim();
     pushMessage(userMessage, 'user');
     setInputMessage('');
-    setLastUserPrompt(userMessage);
+    setIsLoading(true);
 
-    await generateThreeWallResponse(userMessage);
+    // Create new AbortController for this request
+    abortControllerRef.current = new AbortController();
+    isTypingCancelledRef.current = false;
+
+    try {
+      const aiResponse = await sendMessageToAI(userMessage, abortControllerRef.current.signal);
+
+      // Check if request was cancelled
+      if (abortControllerRef.current.signal.aborted) {
+        return;
+      }
+
+      refreshSavedContexts();
+
+      const placeholderMessage = pushMessage('', 'ai');
+      setIsLoading(false);
+      await typeMessage(aiResponse, placeholderMessage.id);
+
+    } catch (error) {
+      if (error.name === 'AbortError') {
+        // Request was cancelled, do nothing
+        return;
+      }
+      setIsLoading(false);
+      setCurrentTypingMessage(null);
+      pushMessage(`I encountered an error. Please try again.`, 'ai');
+    } finally {
+      abortControllerRef.current = null;
+    }
   };
 
   const handleKeyPress = (e) => {
@@ -186,47 +165,23 @@ const ChatInterface = () => {
     }
   };
 
-  const handleStopGeneration = () => {
-    if (isLoading || currentTypingMessage) {
-      generationRef.current.cancelled = true;
-      setIsLoading(false);
-      setCurrentTypingMessage(null);
-      pushMessage('(Generation stopped by user)', 'ai');
-      setShowRegenerate(lastUserPrompt != null);
-    }
-  };
-
-  const handleRegenerate = async () => {
-    if (!lastUserPrompt) return;
-    pushMessage('(Regenerating response...)', 'ai');
-    await generateThreeWallResponse(lastUserPrompt);
-  };
-
-  const toggleMemoryPanel = () => {
-    setShowMemoryPanel(prev => !prev);
-  };
-
   return (
     <div className="chat-interface">
       {/* Header */}
       <header className="chat-header">
         <div className="header-container">
           <div className="header-main">
-
-            {/* ✅ Custom Logo Section */}
             <div className="logo-section">
               <img
                 src={LogoImage}
                 alt="Logo"
                 className="custom-logo"
               />
-
               <div className="logo-text">
                 <h1>RemoraAI</h1>
                 <p className="tagline">Memory-Powered Assistant</p>
               </div>
             </div>
-            {/* ✅ End Custom Logo Section */}
 
             <div className="header-status">
               <div className="status-indicator">
@@ -258,7 +213,6 @@ const ChatInterface = () => {
             <button
               className="close-sidebar"
               onClick={() => setShowMemoryPanel(false)}
-              aria-label="Close memory panel"
             >
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
                 <line x1="18" y1="6" x2="6" y2="18" />
@@ -309,7 +263,6 @@ const ChatInterface = () => {
                     <button
                       onClick={() => handleDeleteContext(ctx.id)}
                       className="delete-memory-btn"
-                      aria-label={`Delete memory ${ctx.name}`}
                     >
                       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
                         <line x1="18" y1="6" x2="6" y2="18" />
@@ -332,10 +285,8 @@ const ChatInterface = () => {
         <section className="chat-container">
           <div className="chat-controls">
             <button
-              onClick={toggleMemoryPanel}
+              onClick={() => setShowMemoryPanel(!showMemoryPanel)}
               className={`memory-toggle-btn ${showMemoryPanel ? 'active' : ''}`}
-              aria-pressed={showMemoryPanel}
-              aria-label="Toggle memory panel"
             >
               <span className="btn-icon">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
@@ -358,6 +309,25 @@ const ChatInterface = () => {
                 </div>
                 <h2>Welcome to RemoraAI</h2>
                 <p>I remember everything you save, so you never have to repeat yourself.</p>
+                <div className="welcome-tips">
+                  <div className="tip-card">
+                    <span className="tip-icon">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z" />
+                      </svg>
+                    </span>
+                    <p>Use <strong>"save"</strong> or <strong>"remember"</strong> to store information</p>
+                  </div>
+                  <div className="tip-card">
+                    <span className="tip-icon">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <circle cx="11" cy="11" r="8" />
+                        <line x1="21" y1="21" x2="16.65" y2="16.65" />
+                      </svg>
+                    </span>
+                    <p>Mention saved items in your questions for context-aware answers</p>
+                  </div>
+                </div>
               </div>
             )}
 
@@ -368,6 +338,7 @@ const ChatInterface = () => {
                     <div className="message-text">{msg.text}</div>
                     <div className="message-time">{msg.timestamp}</div>
                   </div>
+                  <div className="bubble-glow"></div>
                 </div>
               ))}
 
@@ -379,6 +350,22 @@ const ChatInterface = () => {
                       <span className="typing-cursor">|</span>
                     </div>
                     <div className="message-time">typing...</div>
+                  </div>
+                  <div className="bubble-glow"></div>
+                </div>
+              )}
+
+              {isLoading && (
+                <div className="message-bubble ai loading">
+                  <div className="bubble-content">
+                    <div className="thinking-animation">
+                      <div className="thinking-dots">
+                        <span></span>
+                        <span></span>
+                        <span></span>
+                      </div>
+                      <span className="thinking-text">Remora is thinking</span>
+                    </div>
                   </div>
                 </div>
               )}
@@ -397,44 +384,45 @@ const ChatInterface = () => {
                 placeholder="Ask anything or use 'save/remember' to store information..."
                 className="message-input"
                 disabled={isLoading || currentTypingMessage}
-                aria-label="Chat input"
               />
 
-              <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                {(isLoading || currentTypingMessage) && (
-                  <button
-                    onClick={handleStopGeneration}
-                    className="stop-button"
-                    title="Stop response"
-                    aria-label="Stop response"
-                  >
-                    ⏹
-                  </button>
-                )}
+              {/* Stop Button - Only shown when generating */}
+              {(isLoading || currentTypingMessage) && (
+                <button
+                  onClick={handleStopGeneration}
+                  className="stop-button"
+                >
+                  <span className="stop-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <rect x="6" y="6" width="12" height="12" rx="1" />
+                    </svg>
+                  </span>
+                  <div className="stop-glow"></div>
+                </button>
+              )}
 
+              {/* Send Button - Only shown when not generating */}
+              {!(isLoading || currentTypingMessage) && (
                 <button
                   onClick={handleSendMessage}
                   className="send-button"
-                  disabled={isLoading || currentTypingMessage || !inputMessage.trim()}
-                  aria-label="Send message"
+                  disabled={!inputMessage.trim()}
                 >
-                  {isLoading ? (
-                    <div className="send-loading" aria-hidden="true">
-                      <span></span>
-                      <span></span>
-                      <span></span>
-                    </div>
-                  ) : (
-                    <span className="send-icon" aria-hidden="true">
-                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                        <line x1="22" y1="2" x2="11" y2="13" />
-                        <polygon points="22 2 15 22 11 13 2 9 22 2" />
-                      </svg>
-                    </span>
-                  )}
+                  <span className="send-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                      <line x1="22" y1="2" x2="11" y2="13" />
+                      <polygon points="22 2 15 22 11 13 2 9 22 2" />
+                    </svg>
+                  </span>
                   <div className="send-glow"></div>
                 </button>
-              </div>
+              )}
+            </div>
+            <div className="input-hint">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                <path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z" />
+              </svg>
+              Try: "save I take medicine at 9am" or ask about saved items
             </div>
           </div>
         </section>
