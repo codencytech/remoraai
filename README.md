@@ -1,70 +1,85 @@
-# Getting Started with Create React App
+# RemoraAI  
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+> 🧠 **Your private, context-saving AI sidekick that actually remembers things.**
 
-## Available Scripts
+---
 
-In the project directory, you can run:
+## 🌐 Live Project Links  
 
-### `npm start`
+- 🔴 **Live Website:** [https://codencytech.github.io/remoraai/](https://codencytech.github.io/remoraai/)  
+  *(If the hosted link doesn’t load immediately, don’t worry — you can easily run it locally by following the setup steps below.)*  
+- 🎥 **Demo Video:** [https://youtu.be/iKzkxDFLc6Q](https://youtu.be/iKzkxDFLc6Q)  
+- 💻 **Source Code:** [https://github.com/codencytech/remoraai](https://github.com/codencytech/remoraai)
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
+---
 
-The page will reload when you make changes.\
-You may also see any lint errors in the console.
+## 🧾 Overview  
 
-### `npm test`
+**RemoraAI** is a next-generation AI chat platform built for people who hate repeating themselves.  
+It uses **Google Gemini 2.5 Flash** to provide intelligent, human-like conversations — but with a twist: **it remembers what you tell it.**
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+Whether you’re working on a coding project, brainstorming ideas, or managing daily tasks, RemoraAI keeps track of everything you ask it to “save” or “remember.”  
+All data is stored safely in your browser (not on any server), so your privacy stays fully in your control.
 
-### `npm run build`
+This project was proudly created for **Halothon 2025** — a global AI hackathon focused on creativity, usability, and real-world impact.  
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+---
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+## ✨ Key Features  
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+- 🧠 **Context Memory System:** Just say *“save”* or *“remember”*, and RemoraAI stores that information for later use.  
+- 🔒 **Local-First Privacy:** Your saved data stays inside your browser using localStorage — nothing leaves your device.  
+- ⚡ **Instant Recall:** When you ask something related, the AI automatically recalls your saved context to give relevant answers.  
+- 💬 **Memory Vault:** A sleek sidebar where you can view, delete, or clear all saved memories.  
+- 🎨 **Interactive UI:** Built with **Framer Motion** and **tsparticles** for a modern, animated experience.  
+- 🚀 **Fast & Responsive:** Designed to look and feel great across all screen sizes.  
+- 🤝 **Hackathon-ready polish:** Focused on clear UX, technical depth, and creative presentation.
 
-### `npm run eject`
+---
 
-**Note: this is a one-way operation. Once you `eject`, you can't go back!**
+## 🧩 Tech Stack  
 
-If you aren't satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+| Layer | Technology |
+|-------|-------------|
+| Frontend | React (Create React App) |
+| Routing | React Router DOM |
+| Animations | Framer Motion |
+| Background | tsparticles |
+| AI Model | Google Gemini 2.5 Flash (`@google/genai`) |
+| Data Storage | LocalStorage (client-side) |
+| Hosting | GitHub Pages |
 
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you're on your own.
+---
 
-You don't have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn't feel obligated to use this feature. However we understand that this tool wouldn't be useful if you couldn't customize it when you are ready for it.
+## 🤖 How AI Works Behind the Scenes  
 
-## Learn More
+RemoraAI connects directly to **Google’s Gemini 2.5 Flash model** using the official `@google/genai` SDK.  
+Here’s what happens every time you chat:
 
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
+1. 🗂️ If you type something like “save my project goal is an AI chat app,” the system automatically detects and stores it in memory.  
+2. 🔍 Later, when you ask related questions, it searches your saved data to find relevant context.  
+3. 🧩 The system sends both your question *and* the matched context to Gemini for a more intelligent reply.  
+4. 💬 Gemini responds context-aware — remembering your details and giving answers that actually make sense in conversation.
 
-To learn React, check out the [React documentation](https://reactjs.org/).
+> 🏷️ **Acknowledgment:**  
+> RemoraAI uses **Google Gemini 2.5 Flash** for content generation and conversation intelligence.  
+> Special thanks to **Google AI** for enabling this technology.
 
-### Code Splitting
+---
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)
+## 🚀 Installation & Local Setup  
 
-### Analyzing the Bundle Size
+If the live site doesn’t open, you can run RemoraAI locally on your own computer in just a few steps:
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)
+```bash
+# 1. Clone this repository
+git clone https://github.com/codencytech/remoraai.git
 
-### Making a Progressive Web App
+# 2. Move into the project folder
+cd remoraai
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app](https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app)
+# 3. Install all dependencies
+npm install
 
-### Advanced Configuration
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)
-
-### Deployment
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)
-
-### `npm run build` fails to minify
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
+# 4. Start the development server
+npm start
